@@ -1,0 +1,42 @@
+[
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected generic API key or secret token",
+  "StartLine": 13,
+  "EndLine": 13,
+  "StartColumn": 6,
+  "EndColumn": 45,
+  "Match": "key                  = \"backup1.tfstate\"",
+  "Secret": "key",
+  "File": "provider.tf",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 1.5849625,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "provider.tf:generic-api-key:13"
+ },
+ {
+  "RuleID": "hardcoded-passwords",
+  "Description": "Detected hardcoded password or credential in code",
+  "StartLine": 56,
+  "EndLine": 56,
+  "StartColumn": 6,
+  "EndColumn": 41,
+  "Match": "admin_password  = \"frontendops@1234\"",
+  "Secret": "admin_password",
+  "File": "terraform.tfvars",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 3.3787835,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "terraform.tfvars:hardcoded-passwords:56"
+ }
+]

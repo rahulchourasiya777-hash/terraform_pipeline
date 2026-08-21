@@ -1,0 +1,24 @@
+title = "Custom Secrets & Passwords Scanner Config"
+
+[[rules]]
+id = "hardcoded-passwords"
+description = "Detected hardcoded password or credential in code"
+regex = '''(?i)(admin_password|password|pass|secret|api_key|access_key)\s*=\s*["'][^"']+["']'''
+keywords = [
+    "admin_password",
+    "password",
+    "pass",
+    "secret",
+    "api_key",
+    "access_key"
+]
+
+[[rules]]
+id = "generic-api-key"
+description = "Detected generic API key or secret token"
+regex = '''(?i)(key|token|secret)\s*=\s*["'][a-zA-Z0-9_\-\.\=\+]{8,}["']'''
+keywords = [
+    "key",
+    "token",
+    "secret"
+]
