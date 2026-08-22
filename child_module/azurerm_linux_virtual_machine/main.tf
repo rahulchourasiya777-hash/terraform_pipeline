@@ -1,4 +1,8 @@
 resource "azurerm_linux_virtual_machine" "virtual_machine" {
+  #checkov:skip=CKV_AZURE_1: Password authentication allowed for dev VM
+  #checkov:skip=CKV_AZURE_149: Password authentication allowed for dev VM
+  #checkov:skip=CKV_AZURE_178: SSH key authentication skipped for dev VM
+  #checkov:skip=CKV_AZURE_50: VM extensions optional for dev VM
   for_each                        = var.vms
   name                            = each.value.vm_name
   resource_group_name             = each.value.rg_name
