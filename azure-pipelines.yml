@@ -1,0 +1,113 @@
+trigger:
+  branches:
+    include:
+      - feature1
+      - feature/test
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  # ==========================================
+  # STAGE 1: Security & Quality Scans
+  # ==========================================
+  - stage: Security_Linting
+    displayName: 'Stage 1: Security & Code Quality Checks'
+    jobs:
+      - job: SecurityChecks
+        displayName: 'Run Linters and Security Scans'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          # 1. Setup & Run TFLint
+          - script: |
+              curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+              tflint --init
+              tflint --chdir=env/dev_env
+            displayName: 'Run TFLint'
+            continueOnError: false
+
+          # 2. Setup Python & Run Checkov
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.x'
+            displayName: 'Use Python 3.x'
+
+          - script: |
+              pip install checkov
+              checkov -d env/dev_env --framework terraform --soft-fail
+            displayName: 'Run Checkov Scanner'
+
+  # ==========================================
+  # STAGE 2: Terraform Plan
+  # ==========================================
+  - stage: Terraform_Plan
+    displayName: 'Stage 2: Terraform Plan'
+    dependsOn: Security_Linting
+    jobs:
+      - job: Plan
+        displayName: 'Terraform Init & Plan'
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Terraform Init and Plan via OIDC'
+            inputs:
+              azureSubscription: 'azure-service-connection' # Replace with your ADO Service Connection name
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                cd env/dev_env
+                terraform init
+                terraform fmt -check
+                terraform validate
+                terraform plan -var-file="terraform.tfvars" -out=tfplan
+              addSpnToEnvironment: true
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish tfplan Artifact'
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/env/dev_env/tfplan'
+              artifact: 'tfplan'
+
+  # ==========================================
+  # STAGE 3: Terraform Apply (Runs ONLY on main branch)
+  # ==========================================
+  - stage: Terraform_Apply
+    displayName: 'Stage 3: Terraform Apply'
+    dependsOn: Terraform_Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Apply
+        displayName: 'Terraform Apply'
+        environment: 'Production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: DownloadPipelineArtifact@2
+                  displayName: 'Download tfplan Artifact'
+                  inputs:
+                    artifact: 'tfplan'
+                    path: '$(System.DefaultWorkingDirectory)/env/dev_env/'
+
+                - task: AzureCLI@2
+                  displayName: 'Terraform Init and Apply via OIDC'
+                  inputs:
+                    azureSubscription: 'azure-service-connection' # Replace with your ADO Service Connection name
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd env/dev_env
+                      terraform init
+                      terraform apply -auto-approve tfplan
+                    addSpnToEnvironment: true
